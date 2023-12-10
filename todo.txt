@@ -1,0 +1,3 @@
+TODO:
+- implement encoder model for 10x10 MinAtar observations
+- implement multi-environment data collection (ideally have it returned by create_env)
