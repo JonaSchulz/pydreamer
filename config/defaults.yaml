@@ -200,6 +200,24 @@ atari:
   gamma: 0.99
   entropy: 0.001
 
+minatar:
+  n_env_steps: 200_000_000
+  # Env
+  env_id: MinAtar/Breakout-v0
+  action_dim: 6
+  env_action_repeat: 4
+  env_time_limit: 27_000  # =108_000/action_repeat = 30 minutes of game play.
+  generator_workers: 1
+  clip_rewards: tanh
+  # Features
+  image_size: 10
+  image_channels: 4
+  # Model
+  deter_dim: 1024
+  kl_weight: 0.1
+  gamma: 0.99
+  entropy: 0.001
+
 dmc:
   env_id: DMC-quadruped_run
   action_dim: 12

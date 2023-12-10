@@ -6,6 +6,7 @@ import gym
 import numpy as np
 
 from .wrappers import *
+from .minatar_wrappers import *
 
 
 def create_env(env_id: str, no_terminal: bool, env_time_limit: int, env_action_repeat: int, worker_id: int):
@@ -57,6 +58,14 @@ def create_env(env_id: str, no_terminal: bool, env_time_limit: int, env_action_r
         task = env_id.split('-', maxsplit=1)[1].lower()
         env = EmbodiedEnv(task, action_repeat=env_action_repeat, time_limit=env_time_limit)
         env_time_limit = 0  # This is handled by embodied.Env
+
+    elif env_id.startswith('MinAtar'):
+        import gymnasium
+        env = gymnasium.make(env_id, max_episode_steps=env_time_limit)
+        env = DictWrapperGymnasium(env)
+        env = ActionRewardResetWrapperGymnasium(env, no_terminal)
+        env = CollectWrapper(env)
+        return env
 
     else:
         env = gym.make(env_id)
