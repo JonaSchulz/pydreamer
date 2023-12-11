@@ -2,6 +2,15 @@ import gymnasium
 import numpy as np
 
 
+class CategoricalWrapper(gymnasium.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def observation(self, obs):
+        obs = np.argmax(obs, -1)
+        return obs
+
+
 class DictWrapperGymnasium(gymnasium.ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
@@ -13,7 +22,7 @@ class DictWrapperGymnasium(gymnasium.ObservationWrapper):
         if len(obs.shape) == 1:
             return {'vecobs': obs.astype(float)}  # Vector env
         else:
-            return {'image': obs.astype(float)}  # Image env
+            return {'image': obs.astype(int)}  # Image env
 
 
 class ActionRewardResetWrapperGymnasium(gymnasium.Wrapper):
@@ -28,6 +37,7 @@ class ActionRewardResetWrapperGymnasium(gymnasium.Wrapper):
     def step(self, action):
         obs, reward, done, truncated, info = self.env.step(action)
         action = int(action)
+
         if isinstance(action, int):
             action_vec = np.zeros(self.action_size)
             action_vec[action] = 1.0
@@ -47,3 +57,21 @@ class ActionRewardResetWrapperGymnasium(gymnasium.Wrapper):
         obs['terminal'] = np.array(False)
         obs['reset'] = np.array(True)
         return obs
+
+
+class OneHotActionWrapperGymnasium(gymnasium.Wrapper):
+    """Allow to use one-hot action on a discrete action environment."""
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.env = env
+        # Note: we don't want to change env.action_space to Box(0., 1., (n,)) here,
+        # because then e.g. RandomPolicy starts generating continuous actions.
+
+    def step(self, action):
+        if not isinstance(action, np.int64):
+            action = action.argmax()
+        return self.env.step(action)
+
+    def reset(self):
+        return self.env.reset()

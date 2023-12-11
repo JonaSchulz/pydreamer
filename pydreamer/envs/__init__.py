@@ -62,8 +62,11 @@ def create_env(env_id: str, no_terminal: bool, env_time_limit: int, env_action_r
     elif env_id.startswith('MinAtar'):
         import gymnasium
         env = gymnasium.make(env_id, max_episode_steps=env_time_limit)
+        env = CategoricalWrapper(env)
         env = DictWrapperGymnasium(env)
         env = ActionRewardResetWrapperGymnasium(env, no_terminal)
+        if hasattr(env.action_space, 'n'):
+            env = OneHotActionWrapperGymnasium(env)
         env = CollectWrapper(env)
         return env
 

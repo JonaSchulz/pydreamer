@@ -20,6 +20,12 @@ class MultiDecoder(nn.Module):
             self.image = ConvDecoder(in_dim=features_dim,
                                      out_channels=conf.image_channels,
                                      cnn_depth=conf.cnn_depth)
+
+        elif conf.image_decoder == 'cnn_minatar':
+            self.image = ConvDecoderMinatar(in_dim=features_dim,
+                                     out_channels=conf.image_channels,
+                                     cnn_depth=conf.cnn_depth)
+
         elif conf.image_decoder == 'dense':
             self.image = CatImageDecoder(in_dim=features_dim,
                                          out_shape=(conf.image_channels, conf.image_size, conf.image_size),
@@ -122,6 +128,78 @@ class ConvDecoder(nn.Module):
         self.in_dim = in_dim
         kernels = (5, 5, 6, 6)
         stride = 2
+        d = cnn_depth
+        if mlp_layers == 0:
+            layers = [
+                nn.Linear(in_dim, d * 32),  # No activation here in DreamerV2
+            ]
+        else:
+            hidden_dim = d * 32
+            norm = nn.LayerNorm if layer_norm else NoNorm
+            layers = [
+                nn.Linear(in_dim, hidden_dim),
+                norm(hidden_dim, eps=1e-3),
+                activation()
+            ]
+            for _ in range(mlp_layers - 1):
+                layers += [
+                    nn.Linear(hidden_dim, hidden_dim),
+                    norm(hidden_dim, eps=1e-3),
+                    activation()]
+
+        self.model = nn.Sequential(
+            # FC
+            *layers,
+            nn.Unflatten(-1, (d * 32, 1, 1)),
+            # Deconv
+            nn.ConvTranspose2d(d * 32, d * 4, kernels[0], stride),
+            activation(),
+            nn.ConvTranspose2d(d * 4, d * 2, kernels[1], stride),
+            activation(),
+            nn.ConvTranspose2d(d * 2, d, kernels[2], stride),
+            activation(),
+            nn.ConvTranspose2d(d, out_channels, kernels[3], stride))
+
+    def forward(self, x: Tensor) -> Tensor:
+        x, bd = flatten_batch(x)
+        y = self.model(x)
+        y = unflatten_batch(y, bd)
+        return y
+
+    def loss(self, output: Tensor, target: Tensor) -> Tensor:
+        output, bd = flatten_batch(output, 3)
+        target, _ = flatten_batch(target, 3)
+        loss = 0.5 * torch.square(output - target).sum(dim=[-1, -2, -3])  # MSE
+        return unflatten_batch(loss, bd)
+
+    def training_step(self, features: TensorTBIF, target: TensorTBCHW) -> Tuple[TensorTBI, TensorTB, TensorTBCHW]:
+        assert len(features.shape) == 4 and len(target.shape) == 5
+        I = features.shape[2]
+        target = insert_dim(target, 2, I)  # Expand target with iwae_samples dim, because features have it
+
+        decoded = self.forward(features)
+        loss_tbi = self.loss(decoded, target)
+        loss_tb = -logavgexp(-loss_tbi, dim=2)  # TBI => TB
+        decoded = decoded.mean(dim=2)  # TBICHW => TBCHW
+
+        assert len(loss_tbi.shape) == 3 and len(decoded.shape) == 5
+        return loss_tbi, loss_tb, decoded
+
+
+class ConvDecoderMinatar(nn.Module):
+
+    def __init__(self,
+                 in_dim,
+                 out_channels=3,
+                 cnn_depth=32,
+                 mlp_layers=0,
+                 layer_norm=True,
+                 activation=nn.ELU
+                 ):
+        super().__init__()
+        self.in_dim = in_dim
+        kernels = (2, 3, 4, 4)
+        stride = 1
         d = cnn_depth
         if mlp_layers == 0:
             layers = [

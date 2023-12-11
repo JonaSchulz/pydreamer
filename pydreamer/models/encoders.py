@@ -20,6 +20,11 @@ class MultiEncoder(nn.Module):
         if conf.image_encoder == 'cnn':
             self.encoder_image = ConvEncoder(in_channels=encoder_channels,
                                              cnn_depth=conf.cnn_depth)
+
+        elif conf.image_encoder == 'cnn_minatar':
+            self.encoder_image = ConvEncoderMinatar(in_channels=encoder_channels,
+                                             cnn_depth=conf.cnn_depth)
+
         elif conf.image_encoder == 'dense':
             self.encoder_image = DenseEncoder(in_dim=conf.image_size * conf.image_size * encoder_channels,
                                               out_dim=256,
@@ -85,6 +90,32 @@ class ConvEncoder(nn.Module):
             nn.Conv2d(d * 2, d * 4, kernels[2], stride),
             activation(),
             nn.Conv2d(d * 4, d * 8, kernels[3], stride),
+            activation(),
+            nn.Flatten()
+        )
+
+    def forward(self, x):
+        x, bd = flatten_batch(x, 3)
+        y = self.model(x)
+        y = unflatten_batch(y, bd)
+        return y
+
+
+class ConvEncoderMinatar(nn.Module):
+
+    def __init__(self, in_channels=3, cnn_depth=8, activation=nn.ELU):
+        super().__init__()
+        self.out_dim = cnn_depth * 32
+        kernels = (3, 3, 3, 3)
+        d = cnn_depth
+        self.model = nn.Sequential(
+            nn.Conv2d(in_channels, d, kernels[0]),
+            activation(),
+            nn.Conv2d(d, d * 2, kernels[1]),
+            activation(),
+            nn.Conv2d(d * 2, d * 4, kernels[2]),
+            activation(),
+            nn.Conv2d(d * 4, d * 8, kernels[3]),
             activation(),
             nn.Flatten()
         )
