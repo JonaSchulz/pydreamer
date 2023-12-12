@@ -7,8 +7,9 @@ class CategoricalWrapper(gymnasium.ObservationWrapper):
         super().__init__(env)
 
     def observation(self, obs):
-        obs = np.argmax(obs, -1)
-        return obs
+        obs_index = np.argmax(obs, -1)
+        obs_index[obs.sum(-1) == 0] = 4
+        return obs_index
 
 
 class DictWrapperGymnasium(gymnasium.ObservationWrapper):
