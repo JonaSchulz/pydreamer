@@ -24,7 +24,7 @@ from pydreamer.preprocessing import Preprocessor
 from pydreamer.tools import *
 
 
-def main(env_id='MiniGrid-MazeS11N-v0',
+def main(env_id=['MiniGrid-MazeS11N-v0'],
          save_uri=None,
          save_uri2=None,
          worker_id=0,
@@ -67,7 +67,8 @@ def main(env_id='MiniGrid-MazeS11N-v0',
     info(f'Found existing {nfiles} files, {episodes} episodes, {steps_saved} steps in {repository}')
 
     # Env
-
+    if env_id == "minatar":
+        env_id = ['MinAtar/Asterix-v0', 'MinAtar/Breakout-v0', 'MinAtar/Freeway-v0', 'MinAtar/Seaquest-v0']
     env = [create_env(_id, env_no_terminal, env_time_limit, env_action_repeat, worker_id) for _id in env_id]
 
     # Policy
@@ -90,6 +91,7 @@ def main(env_id='MiniGrid-MazeS11N-v0',
     metrics_agg = defaultdict(list)
     all_returns = []
     steps = 0
+    steps_per_env = np.array([0 for _env in env])
 
     while steps_saved < num_steps:
 
@@ -122,20 +124,24 @@ def main(env_id='MiniGrid-MazeS11N-v0',
                 continue
 
         # Unroll one episode
-
+        # env_index = np.random.randint(0, len(env))
+        env_index = np.argmin(steps_per_env)
+        print(f"Env: {env_id[env_index]}")
+        print(f"Steps per env: {list(zip(env_id, steps_per_env))}")
         epsteps = 0
         timer = time.time()
-        obs = env.reset()
+        obs = env[env_index].reset()
         done = False
         metrics = defaultdict(list)
 
         while not done:
-            action, mets = policy(obs)
-            obs, reward, done, inf = env.step(action)
+            action, mets = policy[env_index](obs)
+            obs, reward, done, inf = env[env_index].step(action)
             steps += 1
             epsteps += 1
             for k, v in mets.items():
                 metrics[k].append(v)
+            steps_per_env[env_index] += 1
 
         episodes += 1
         data = inf['episode']  # type: ignore
