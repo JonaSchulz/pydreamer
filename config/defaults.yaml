@@ -210,7 +210,7 @@ minatar:
   clip_rewards: tanh
   # Features
   image_size: 10
-  image_channels: 5
+  image_channels: 11
   image_categorical: True
   # Model
   image_encoder: cnn_minatar

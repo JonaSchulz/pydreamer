@@ -86,6 +86,18 @@ class Dreamer(nn.Module):
             }
         return grad_metrics
 
+    def grad_clip_wm(self, grad_clip, grad_clip_ac=None):
+        if not self.probe_gradients:
+            grad_metrics = {
+                'grad_norm': nn.utils.clip_grad_norm_(self.wm.parameters(), grad_clip),
+                'grad_norm_probe': nn.utils.clip_grad_norm_(self.probe_model.parameters(), grad_clip),
+            }
+        else:
+            grad_metrics = {
+                'grad_norm': nn.utils.clip_grad_norm_(self.wm.parameters(), grad_clip),
+            }
+        return grad_metrics
+
     def init_state(self, batch_size: int):
         return self.wm.init_state(batch_size)
 
@@ -184,6 +196,45 @@ class Dreamer(nn.Module):
         else:
             losses = (loss_model + loss_probe, loss_actor, loss_critic)
         return losses, out_state, metrics, tensors, dream_tensors
+
+    def training_step_wm(self,
+                         obs: Dict[str, Tensor],
+                         in_state: Any,
+                         iwae_samples: Optional[int] = None,
+                         imag_horizon: Optional[int] = None,
+                         do_open_loop=False,
+                         do_image_pred=False,
+                         ):
+        assert 'action' in obs, '`action` required in observation'
+        assert 'reward' in obs, '`reward` required in observation'
+        assert 'reset' in obs, '`reset` required in observation'
+        assert 'terminal' in obs, '`terminal` required in observation'
+        iwae_samples = int(iwae_samples or self.iwae_samples)
+        imag_horizon = int(imag_horizon or self.imag_horizon)
+        T, B = obs['action'].shape[:2]
+        I, H = iwae_samples, imag_horizon
+
+        # World model
+
+        loss_model, features, states, out_state, metrics, tensors = \
+            self.wm.training_step(obs,
+                                  in_state,
+                                  iwae_samples=iwae_samples,
+                                  do_open_loop=do_open_loop,
+                                  do_image_pred=do_image_pred)
+
+        # Map probe
+
+        features_probe = features.detach() if not self.probe_gradients else features
+        loss_probe, metrics_probe, tensors_probe = self.probe_model.training_step(features_probe, obs)
+        metrics.update(**metrics_probe)
+        tensors.update(**tensors_probe)
+
+        if not self.probe_gradients:
+            losses = (loss_model, loss_probe)
+        else:
+            losses = (loss_model + loss_probe)
+        return losses, out_state, metrics, tensors
 
     def dream(self, in_state: StateB, imag_horizon: int, dynamics_gradients=False):
         features = []

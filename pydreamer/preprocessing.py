@@ -9,7 +9,10 @@ from .tools import *
 
 def to_onehot(x: np.ndarray, n_categories) -> np.ndarray:
     e = np.eye(n_categories, dtype=np.float32)
-    return e[x]  # Nice trick: https://stackoverflow.com/a/37323404
+    try:
+        return e[x]  # Nice trick: https://stackoverflow.com/a/37323404
+    except:
+        pass
 
 
 def img_to_onehot(x: np.ndarray, n_categories) -> np.ndarray:

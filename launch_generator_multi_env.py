@@ -7,14 +7,14 @@ from distutils.util import strtobool
 from multiprocessing import Process
 from typing import List
 
-import generator
+import generator_multi_env
 import train
 from pydreamer.tools import (configure_logging, mlflow_log_params,
                              mlflow_init, print_once, read_yamls)
 
 
 def launch():
-    os.environ['MLFLOW_RUN_ID'] = '66419d79199f4aaabe652bf740d5ee4d'
+    # os.environ['MLFLOW_RUN_ID'] = ''
     configure_logging('[launcher]')
     parser = argparse.ArgumentParser()
     parser.add_argument('--configs', nargs='+', required=True)
@@ -63,7 +63,7 @@ def launch():
                 num_steps=conf.n_env_steps // conf.env_action_repeat // conf.generator_workers,
                 limit_step_ratio=conf.limit_step_ratio / conf.generator_workers,
                 worker_id=i,
-                policy_main='network',
+                policy_main='random',
                 policy_prefill=conf.generator_prefill_policy,
                 num_steps_prefill=conf.generator_prefill_steps // conf.generator_workers,
                 split_fraction=0.05,
@@ -103,13 +103,6 @@ def launch():
             )
             subprocesses.append(p)
 
-    # Launch learner
-
-    if belongs_to_worker('learner', 0):
-        info('Launching learner')
-        p = launch_learner(conf)
-        subprocesses.append(p)
-
     # Wait & watch
 
     try:
@@ -119,12 +112,6 @@ def launch():
     finally:
         for p in subprocesses:
             p.kill()  # Non-daemon processes (learner) need to be killed
-
-
-def launch_learner(conf):
-    p = Process(target=train.run, daemon=False, args=[conf])
-    p.start()
-    return p
 
 
 def launch_generator(env_id,
@@ -141,7 +128,7 @@ def launch_generator(env_id,
                      metrics_prefix='agent',
                      log_mlflow_metrics=True,
                      ):
-    p = Process(target=generator.main,
+    p = Process(target=generator_multi_env.main,
                 daemon=True,
                 kwargs=dict(
                     env_id=env_id,
