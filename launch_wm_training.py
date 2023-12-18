@@ -14,7 +14,6 @@ from pydreamer.tools import (configure_logging, mlflow_log_params,
 
 
 def launch():
-    os.environ['MLFLOW_RUN_ID'] = 'e70369e87890439b8ad5950235b18711'
     configure_logging('[launcher]')
     parser = argparse.ArgumentParser()
     parser.add_argument('--configs', nargs='+', required=True)
@@ -42,6 +41,8 @@ def launch():
     conf = parser.parse_args(remaining)
 
     # Mlflow
+    if conf.mlflow_run_id:
+        os.environ['MLFLOW_RUN_ID'] = conf.mlflow_run_id
 
     worker_type, worker_index = get_worker_info()
     is_main_worker = worker_type is None or worker_type == 'learner'

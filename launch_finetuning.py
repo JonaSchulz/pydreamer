@@ -8,7 +8,7 @@ from multiprocessing import Process
 from typing import List
 
 import generator
-import train
+import train_finetune
 from pydreamer.tools import (configure_logging, mlflow_log_params,
                              mlflow_init, print_once, read_yamls)
 
@@ -121,7 +121,7 @@ def launch():
 
 
 def launch_learner(conf):
-    p = Process(target=train.run, daemon=False, args=[conf])
+    p = Process(target=train_finetune.run, daemon=False, args=[conf])
     p.start()
     return p
 

@@ -236,6 +236,71 @@ class Dreamer(nn.Module):
             losses = (loss_model + loss_probe)
         return losses, out_state, metrics, tensors
 
+    def training_step_ac(self,
+                         obs: Dict[str, Tensor],
+                         in_state: Any,
+                         iwae_samples: Optional[int] = None,
+                         imag_horizon: Optional[int] = None,
+                         do_open_loop=False,
+                         do_image_pred=False,
+                         do_dream_tensors=False,
+                         ):
+        assert 'action' in obs, '`action` required in observation'
+        assert 'reward' in obs, '`reward` required in observation'
+        assert 'reset' in obs, '`reset` required in observation'
+        assert 'terminal' in obs, '`terminal` required in observation'
+        iwae_samples = int(iwae_samples or self.iwae_samples)
+        imag_horizon = int(imag_horizon or self.imag_horizon)
+        T, B = obs['action'].shape[:2]
+        I, H = iwae_samples, imag_horizon
+
+        # World model
+
+        loss_model, features, states, out_state, metrics, tensors = \
+            self.wm.training_step(obs,
+                                  in_state,
+                                  iwae_samples=iwae_samples,
+                                  do_open_loop=do_open_loop,
+                                  do_image_pred=do_image_pred,
+                                  forward_only=True)
+
+        # Policy
+
+        in_state_dream: StateB = map_structure(states, lambda x: flatten_batch(x.detach())[0])  # type: ignore  # (T,B,I) => (TBI)
+        # Note features_dream includes the starting "real" features at features_dream[0]
+        features_dream, actions_dream, rewards_dream, terminals_dream = \
+            self.dream(in_state_dream, H, self.ac.actor_grad == 'dynamics')  # (H+1,TBI,D)
+        (loss_actor, loss_critic), metrics, tensors_ac = \
+            self.ac.training_step(features_dream.detach(),
+                                  actions_dream.detach(),
+                                  rewards_dream.mean.detach(),
+                                  terminals_dream.mean.detach())
+        tensors.update(policy_value=unflatten_batch(tensors_ac['value'][0], (T, B, I)).mean(-1))
+
+        # Dream for a log sample.
+
+        dream_tensors = {}
+        if do_dream_tensors and self.wm.decoder.image is not None:
+            with torch.no_grad():  # careful not to invoke modules first time under no_grad (https://github.com/pytorch/pytorch/issues/60164)
+                # The reason we don't just take real features_dream is because it's really big (H*T*B*I),
+                # and here for inspection purposes we only dream from first step, so it's (H*B).
+                # Oh, and we set here H=T-1, so we get (T,B), and the dreamed experience aligns with actual.
+                in_state_dream: StateB = map_structure(states, lambda x: x.detach()[0, :, 0])  # type: ignore  # (T,B,I) => (B)
+                features_dream, actions_dream, rewards_dream, terminals_dream = self.dream(in_state_dream, T - 1)  # H = T-1
+                image_dream = self.wm.decoder.image.forward(features_dream)
+                _, _, tensors_ac = self.ac.training_step(features_dream, actions_dream, rewards_dream.mean, terminals_dream.mean, log_only=True)
+                # The tensors are intentionally named same as in tensors, so the logged npz looks the same for dreamed or not
+                dream_tensors = dict(action_pred=torch.cat([obs['action'][:1], actions_dream]),  # first action is real from previous step
+                                     reward_pred=rewards_dream.mean,
+                                     terminal_pred=terminals_dream.mean,
+                                     image_pred=image_dream,
+                                     **tensors_ac)
+                assert dream_tensors['action_pred'].shape == obs['action'].shape
+                assert dream_tensors['image_pred'].shape == obs['image'].shape
+
+        losses = (loss_actor, loss_critic)
+        return losses, out_state, metrics, tensors, dream_tensors
+
     def dream(self, in_state: StateB, imag_horizon: int, dynamics_gradients=False):
         features = []
         actions = []

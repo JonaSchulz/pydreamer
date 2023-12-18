@@ -197,6 +197,19 @@ def mlflow_load_checkpoint(model, optimizers=tuple(), artifact_path='checkpoints
         return checkpoint['epoch']
 
 
+def load_checkpoint(model, path, optimizers=tuple(), map_location=None):
+    import torch
+    try:
+        checkpoint = torch.load(path, map_location=map_location)
+    except:
+        exception('Error reading checkpoint')
+        return None
+    model.load_state_dict(checkpoint['model_state_dict'])
+    for i, opt in enumerate(optimizers):
+        opt.load_state_dict(checkpoint[f'optimizer_{i}_state_dict'])
+    return checkpoint['epoch']
+
+
 def save_npz(data, path):
     if isinstance(path, str):
         path = Path(path)
