@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
 
-file_path = '0165001.npz'
+file_path = 'mlruns/0/9181c35090494172bafc17e4ef03ecee/artifacts/episodes/0/ep001131_001178-0-r16-1000.npz'
 # file_path = os.path.join('test/episodes', os.listdir('test/episodes')[0])
 
 dream_seq = np.load(file_path)
@@ -26,11 +26,11 @@ if len(dream_seq['image'].shape) in (4, 5):
             ims.append([ax.imshow(img)])
 
 else:
-    for img in dream_seq['image'][0]:
+    for img in dream_seq['image']:
         ims.append([ax.imshow(img)])
 
 
-ani = animation.ArtistAnimation(fig, ims, interval=30, blit=True,
+ani = animation.ArtistAnimation(fig, ims, interval=5, blit=True,
                                 repeat_delay=10)
 
 plt.show()

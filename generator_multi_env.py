@@ -20,8 +20,9 @@ from pydreamer.data import MlflowEpisodeRepository
 from pydreamer.envs import create_env
 from pydreamer.models import *
 from pydreamer.models.functions import map_structure
-from pydreamer.preprocessing import Preprocessor
+from pydreamer.preprocessing import Preprocessor, img_to_onehot
 from pydreamer.tools import *
+from dqn.agent import DQN
 
 
 def main(env_id=['MiniGrid-MazeS11N-v0'],
@@ -76,11 +77,11 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
     if num_steps_prefill:
         # Start with prefill policy
         info(f'Prefill policy: {policy_prefill}')
-        policy = [create_policy(policy_prefill, _env, model_conf) for _env in env]
+        policy = [create_policy(policy_prefill, _env, model_conf, id) for id, _env in zip(env_id, env)]
         is_prefill_policy = True
     else:
         info(f'Policy: {policy_main}')
-        policy = [create_policy(policy_main, _env, model_conf) for _env in env]
+        policy = [create_policy(policy_main, _env, model_conf, id) for id, _env in zip(env_id, env)]
         is_prefill_policy = False
 
     # RUN
@@ -99,7 +100,7 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
 
         if is_prefill_policy and steps_saved >= num_steps_prefill:
             info(f'Switching to main policy: {policy_main}')
-            policy = [create_policy(policy_main, _env, model_conf) for _env in env]
+            policy = [create_policy(policy_main, _env, model_conf, id) for id, _env in zip(env_id, env)]
             is_prefill_policy = False
 
         # Load network
@@ -266,7 +267,11 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
     info('Generator done.')
 
 
-def create_policy(policy_type: str, env, model_conf):
+def create_policy(policy_type: str, env, model_conf, env_id=None):
+    if policy_type == 'dqn':
+        assert env_id is not None, 'Specify env_id'
+        return DQNPolicy(env_id, model_conf.image_size, model_conf.action_dim)
+
     if policy_type == 'network':
         conf = model_conf
         if conf.model == 'dreamer':
@@ -305,6 +310,21 @@ def create_policy(policy_type: str, env, model_conf):
         return MazeDijkstraPolicy(step_size, turn_size, goal_strategy='goal_direction', random_prob=0)
 
     raise ValueError(policy_type)
+
+
+class DQNPolicy:
+    categories = {'MinAtar/Asterix-v0': 4,
+                  'MinAtar/Breakout-v0': 4,
+                  'MinAtar/Freeway-v0': 7,
+                  'MinAtar/Seaquest-v0': 10}
+
+    def __init__(self, env_id, image_size, n_actions):
+        self.categoricals = DQNPolicy.categories[env_id]
+        self.model = DQN(self.categoricals[env_id] * (image_size ** 2), n_actions)
+
+    def __call__(self, obs) -> Tuple[int, dict]:
+        obs = img_to_onehot(obs, self.categoricals)
+        return self.model(obs), {}
 
 
 class RandomPolicy:
