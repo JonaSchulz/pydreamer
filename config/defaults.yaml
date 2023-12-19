@@ -318,10 +318,10 @@ debug:
   imag_horizon: 3
 
 wm_training:
-  mlflow_run_id: 7511f2b60cf84940aede41ea13d23a40
+  mlflow_run_id:
 
 finetune:
   n_steps: 100
   n_steps_wm: 20
   adam_lr: 3.0e-6
-  model_checkpoint: mlruns/0/7511f2b60cf84940aede41ea13d23a40/artifacts/checkpoints/latest.pt
+  model_checkpoint:
