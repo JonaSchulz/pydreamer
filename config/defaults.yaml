@@ -324,4 +324,4 @@ finetune:
   n_steps: 100
   n_steps_wm: 20
   adam_lr: 3.0e-6
-  model_checkpoint:
+  model_checkpoint: abc
