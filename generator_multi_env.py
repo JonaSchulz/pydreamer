@@ -20,7 +20,7 @@ from pydreamer.data import MlflowEpisodeRepository
 from pydreamer.envs import create_env
 from pydreamer.models import *
 from pydreamer.models.functions import map_structure
-from pydreamer.preprocessing import Preprocessor, img_to_onehot
+from pydreamer.preprocessing import Preprocessor, to_onehot
 from pydreamer.tools import *
 from dqn.agent import DQN
 
@@ -68,8 +68,8 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
     info(f'Found existing {nfiles} files, {episodes} episodes, {steps_saved} steps in {repository}')
 
     # Env
-    if env_id == "minatar":
-        env_id = ['MinAtar/Asterix-v0', 'MinAtar/Breakout-v0', 'MinAtar/Freeway-v0', 'MinAtar/Seaquest-v0']
+    # if env_id == "minatar":
+    #    env_id = ['MinAtar/Asterix-v0', 'MinAtar/Breakout-v0', 'MinAtar/Freeway-v0', 'MinAtar/Seaquest-v0']
     env = [create_env(_id, env_no_terminal, env_time_limit, env_action_repeat, worker_id) for _id in env_id]
 
     # Policy
@@ -106,6 +106,12 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
         # Load network
 
         for i, _policy in enumerate(policy):
+            if isinstance(_policy, DQNPolicy):
+                if time.time() - last_model_load > model_reload_interval:
+                    try:
+                        _policy.model.load_state_dict(torch.load(model_conf.agent_path[env_id[i]], map_location='cpu'))
+                    except:
+                        pass
             if isinstance(_policy, NetworkPolicy):
                 if time.time() - last_model_load > model_reload_interval:
                     while True:
@@ -270,7 +276,7 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
 def create_policy(policy_type: str, env, model_conf, env_id=None):
     if policy_type == 'dqn':
         assert env_id is not None, 'Specify env_id'
-        return DQNPolicy(env_id, model_conf.image_size, model_conf.action_dim)
+        return DQNPolicy(env_id, model_conf.image_size, model_conf.action_dim, model_conf.agent_path[env_id])
 
     if policy_type == 'network':
         conf = model_conf
@@ -313,18 +319,18 @@ def create_policy(policy_type: str, env, model_conf, env_id=None):
 
 
 class DQNPolicy:
-    categories = {'MinAtar/Asterix-v0': 4,
-                  'MinAtar/Breakout-v0': 4,
-                  'MinAtar/Freeway-v0': 7,
-                  'MinAtar/Seaquest-v0': 10}
+    categories = {'MinAtar/Asterix-v0': 5,
+                  'MinAtar/Breakout-v0': 5,
+                  'MinAtar/Freeway-v0': 8,
+                  'MinAtar/Seaquest-v0': 11}
 
-    def __init__(self, env_id, image_size, n_actions):
+    def __init__(self, env_id, image_size, n_actions, model_path):
         self.categoricals = DQNPolicy.categories[env_id]
-        self.model = DQN(self.categoricals[env_id] * (image_size ** 2), n_actions)
+        self.model = DQN((self.categoricals - 1) * (image_size ** 2), n_actions)
 
     def __call__(self, obs) -> Tuple[int, dict]:
-        obs = img_to_onehot(obs, self.categoricals)
-        return self.model(obs), {}
+        obs['image'] = to_onehot(obs['image'], self.categoricals)[:, :, 1:]
+        return self.model(torch.from_numpy(obs['image']).flatten()), {}
 
 
 class RandomPolicy:

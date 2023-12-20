@@ -4,6 +4,7 @@ from collections import namedtuple, deque
 import random
 import math
 from itertools import count
+from multiprocessing import Process
 
 import torch
 from torch import nn
@@ -135,15 +136,16 @@ class Agent:
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
-    def train(self, num_episodes):
-        episode_durations = []
-
-        for i_episode in range(num_episodes):
-            print(f"Episode {i_episode}")
+    def train(self, num_steps, save_interval=None, save_path=None):
+        steps = 0
+        for i_episode in count():
             # Initialize the environment and get it's state
+            if steps >= num_steps:
+                break
             state, info = self.env.reset()
             state = torch.tensor(state, dtype=torch.float32, device=device).flatten().unsqueeze(0)
             for t in count():
+                steps += 1
                 action = self.select_action(state)
                 observation, reward, terminated, truncated, _ = self.env.step(action.item())
                 reward = torch.tensor([reward], device=device)
@@ -171,10 +173,19 @@ class Agent:
                     target_net_state_dict[key] = policy_net_state_dict[key]*Agent.TAU + target_net_state_dict[key]*(1-Agent.TAU)
                 self.target_net.load_state_dict(target_net_state_dict)
 
+                if steps >= num_steps:
+                    break
+
                 if done:
-                    episode_durations.append(t + 1)
                     #plot_durations()
                     break
+
+            if save_interval is not None and (i_episode % save_interval == 0) and i_episode:
+                assert save_path is not None, 'Specify model save path'
+                torch.save(self.target_net.state_dict(), save_path)
+
+        if save_path is not None:
+            torch.save(self.target_net.state_dict(), save_path)
 
     def play(self, num_episodes):
         env = gym.make(self.env_id, render_mode="human")
@@ -194,6 +205,13 @@ class Agent:
         self.env.close()
 
 
-# agent = Agent("MinAtar/Breakout-v0")
-# agent.train(500)
-# agent.play(100)
+def run(conf):
+    assert conf.train_dqn and conf.dqn_train_steps, 'Set train_dqn True and set dqn_train_steps'
+    num_steps = [conf.dqn_train_steps for _ in conf.env_id] if type(conf.dqn_train_steps) is int else conf.dqn_train_steps
+    save_interval = [conf.dqn_save_interval for _ in conf.env_id] if type(conf.dqn_save_interval) is int else conf.dqn_save_interval
+    agents = [Agent(_id) for _id in conf.env_id]
+
+
+
+
+

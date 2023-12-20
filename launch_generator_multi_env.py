@@ -9,6 +9,7 @@ from typing import List
 
 import generator_multi_env
 import train
+from dqn import agent
 from pydreamer.tools import (configure_logging, mlflow_log_params,
                              mlflow_init, print_once, read_yamls)
 
@@ -63,7 +64,7 @@ def launch():
                 num_steps=conf.n_env_steps // conf.env_action_repeat // conf.generator_workers,
                 limit_step_ratio=conf.limit_step_ratio / conf.generator_workers,
                 worker_id=i,
-                policy_main='random',
+                policy_main=conf.policy_main,
                 policy_prefill=conf.generator_prefill_policy,
                 num_steps_prefill=conf.generator_prefill_steps // conf.generator_workers,
                 split_fraction=0.05,
@@ -103,6 +104,11 @@ def launch():
             )
             subprocesses.append(p)
 
+    if conf.train_dqn and belongs_to_worker('learner', 0):
+        info('Launching learner')
+        p = launch_dqn_learner(conf)
+        subprocesses.append(p)
+
     # Wait & watch
 
     try:
@@ -112,6 +118,12 @@ def launch():
     finally:
         for p in subprocesses:
             p.kill()  # Non-daemon processes (learner) need to be killed
+
+
+def launch_dqn_learner(conf):
+    p = Process(target=agent.run, daemon=False, args=[conf])
+    p.start()
+    return p
 
 
 def launch_generator(env_id,
