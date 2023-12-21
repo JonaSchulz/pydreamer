@@ -104,11 +104,6 @@ def launch():
             )
             subprocesses.append(p)
 
-    if conf.train_dqn and belongs_to_worker('learner', 0):
-        info('Launching learner')
-        p = launch_dqn_learner(conf)
-        subprocesses.append(p)
-
     # Wait & watch
 
     try:
@@ -118,12 +113,6 @@ def launch():
     finally:
         for p in subprocesses:
             p.kill()  # Non-daemon processes (learner) need to be killed
-
-
-def launch_dqn_learner(conf):
-    p = Process(target=agent.run, daemon=False, args=[conf])
-    p.start()
-    return p
 
 
 def launch_generator(env_id,

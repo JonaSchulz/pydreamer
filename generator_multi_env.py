@@ -10,6 +10,7 @@ from itertools import chain
 from logging import critical, debug, error, info, warning
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import random
 
 import mlflow
 import numpy as np
@@ -23,6 +24,12 @@ from pydreamer.models.functions import map_structure
 from pydreamer.preprocessing import Preprocessor, to_onehot
 from pydreamer.tools import *
 from dqn.agent import DQN
+
+
+def load_dqn_model(model, model_dir):
+    model_file = os.path.join(model_dir, random.choice(os.listdir(model_dir)))
+    model.load_state_dict(torch.load(model_file, map_location='cpu'))
+    return model_file
 
 
 def main(env_id=['MiniGrid-MazeS11N-v0'],
@@ -106,13 +113,13 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
         # Load network
 
         for i, _policy in enumerate(policy):
+
             if isinstance(_policy, DQNPolicy):
                 if time.time() - last_model_load > model_reload_interval:
-                    try:
-                        _policy.model.load_state_dict(torch.load(model_conf.agent_path[env_id[i]], map_location='cpu'))
-                    except:
-                        pass
-            if isinstance(_policy, NetworkPolicy):
+                    model_file = load_dqn_model(_policy.model, model_conf.dqn_dir[env_id[i]])
+                    print(f"Loading model checkpoint {model_file}")
+
+            elif isinstance(_policy, NetworkPolicy):
                 if time.time() - last_model_load > model_reload_interval:
                     while True:
                         # takes ~10sec to load checkpoint
@@ -133,7 +140,6 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
         # Unroll one episode
         # env_index = np.random.randint(0, len(env))
         env_index = np.argmin(steps_per_env)
-        print(f"Env: {env_id[env_index]}")
         print(f"Steps per env: {list(zip(env_id, steps_per_env))}")
         epsteps = 0
         timer = time.time()
@@ -276,7 +282,7 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
 def create_policy(policy_type: str, env, model_conf, env_id=None):
     if policy_type == 'dqn':
         assert env_id is not None, 'Specify env_id'
-        return DQNPolicy(env_id, model_conf.image_size, model_conf.action_dim, model_conf.agent_path[env_id])
+        return DQNPolicy(env_id, model_conf.image_size, model_conf.action_dim)
 
     if policy_type == 'network':
         conf = model_conf
@@ -324,7 +330,7 @@ class DQNPolicy:
                   'MinAtar/Freeway-v0': 8,
                   'MinAtar/Seaquest-v0': 11}
 
-    def __init__(self, env_id, image_size, n_actions, model_path):
+    def __init__(self, env_id, image_size, n_actions):
         self.categoricals = DQNPolicy.categories[env_id]
         self.model = DQN((self.categoricals - 1) * (image_size ** 2), n_actions)
 

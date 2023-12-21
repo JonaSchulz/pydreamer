@@ -139,6 +139,7 @@ class Agent:
     def train(self, num_steps, save_interval=None, save_path=None):
         steps = 0
         for i_episode in count():
+            print(f"{self.env_id}: Episode {i_episode}")
             # Initialize the environment and get it's state
             if steps >= num_steps:
                 break
@@ -180,9 +181,9 @@ class Agent:
                     #plot_durations()
                     break
 
-            if save_interval is not None and (i_episode % save_interval == 0) and i_episode:
-                assert save_path is not None, 'Specify model save path'
-                torch.save(self.target_net.state_dict(), save_path)
+                if save_interval is not None and (steps % save_interval == 0) and steps:
+                    assert save_path is not None, 'Specify model save path'
+                    torch.save(self.target_net.state_dict(), save_path)
 
         if save_path is not None:
             torch.save(self.target_net.state_dict(), save_path)
@@ -203,15 +204,3 @@ class Agent:
                 episodes += 1
 
         self.env.close()
-
-
-def run(conf):
-    assert conf.train_dqn and conf.dqn_train_steps, 'Set train_dqn True and set dqn_train_steps'
-    num_steps = [conf.dqn_train_steps for _ in conf.env_id] if type(conf.dqn_train_steps) is int else conf.dqn_train_steps
-    save_interval = [conf.dqn_save_interval for _ in conf.env_id] if type(conf.dqn_save_interval) is int else conf.dqn_save_interval
-    agents = [Agent(_id) for _id in conf.env_id]
-
-
-
-
-

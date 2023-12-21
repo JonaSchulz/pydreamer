@@ -324,14 +324,11 @@ generator_multi_env:
     - MinAtar/Seaquest-v0
     - MinAtar/Freeway-v0
   policy_main: dqn
-  train_dqn: True
-  dqn_train_steps: [100, 100, 100, 100]
-  dqn_save_interval: [10, 10, 10, 10]
-  agent_path: { MinAtar/Breakout-v0: dqn/model_breakout.pt,
-                MinAtar/Asterix-v0: dqn/model_asterix.pt,
-                MinAtar/Freeway-v0: dqn/model_freeway.pt,
-                MinAtar/Seaquest-v0: dqn/model_seaquest.pt
-              }
+  dqn_dir: { MinAtar/Breakout-v0: dqn/breakout,
+             MinAtar/Asterix-v0: dqn/asterix,
+             MinAtar/Freeway-v0: dqn/freeway,
+             MinAtar/Seaquest-v0: dqn/seaquest
+            }
   generator_prefill_steps: 1000
 
 wm_training:
