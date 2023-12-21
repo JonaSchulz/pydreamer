@@ -222,33 +222,6 @@ minatar:
   gamma: 0.99
   entropy: 0.001
 
-minatar_multi_env:
-  n_env_steps: 200_000_000
-  # Env
-  num_envs: 4
-  env_id: MinAtar/Breakout-v0
-  action_dim: 6
-  env_time_limit: 27_000  # =108_000/action_repeat = 30 minutes of game play.
-  generator_workers: 0
-  clip_rewards: tanh
-  offline_data_dir: # Specify directory for mixed-environment episodes
-  # Features
-  image_size: 10
-  image_channels: 5
-  image_categorical: True
-  # Model
-  image_encoder: cnn_minatar
-  image_decoder: cnn_minatar
-  cnn_depth: 8
-  deter_dim: 256
-  hidden_dim: 200
-  kl_weight: 0.1
-  gamma: 0.99
-  entropy: 0.001
-  # Data Generation
-  model_path:
-    - checkpoints/latest.pt
-
 dmc:
   env_id: DMC-quadruped_run
   action_dim: 12
