@@ -114,6 +114,14 @@ class MultiDecoder(nn.Module):
         return loss_reconstr, metrics, tensors
 
 
+class RewardTerminalMultiEnv(nn.Module):
+    def __init__(self, conf):
+        raise NotImplementedError
+
+    def forward(self, features: Tensor) -> Tensor:
+        raise NotImplementedError
+
+
 class MultiDecoderMultiEnv(nn.Module):
 
     def __init__(self, features_dim, conf):
@@ -122,6 +130,8 @@ class MultiDecoderMultiEnv(nn.Module):
         # self.decoders = [MultiDecoder(features_dim, conf) for _ in conf.env_id]
         # TESTING
         self.decoders = [MultiDecoder(features_dim, conf) for _ in range(2)]
+        self.reward = RewardTerminalMultiEnv(conf)
+        self.terminal = RewardTerminalMultiEnv(conf)
 
     def training_step(self,
                       features: TensorTBIF,
@@ -158,6 +168,13 @@ class MultiDecoderMultiEnv(nn.Module):
 
         return loss_reconstr, metrics, tensors
 
+    def update_dict(self, global_dict: Dict[str, Tensor], sub_dict: Dict[str, Tensor], indices: Tensor, batch_size: int):
+        for key, val in sub_dict.items():
+            if key not in global_dict.keys():
+                T = val.shape[0]
+                global_dict[key] = torch.zeros(T, batch_size, dtype=torch.float32, device=self.device)
+            global_dict[key][:, indices] = val
+
     @staticmethod
     def get_sub_batch(obs: Dict[str, Tensor], i: int) -> Dict[str, Tensor]:
         indices = obs['env_id'] == i
@@ -167,13 +184,6 @@ class MultiDecoderMultiEnv(nn.Module):
                 continue
             sub_batch[key] = val[:, indices]
         return sub_batch
-
-    def update_dict(self, global_dict: Dict[str, Tensor], sub_dict: Dict[str, Tensor], indices: Tensor, batch_size: int):
-        for key, val in sub_dict.items():
-            if key not in global_dict.keys():
-                T = val.shape[0]
-                global_dict[key] = torch.zeros(T, batch_size, dtype=torch.float32, device=self.device)
-            global_dict[key][:, indices] = val
 
     @staticmethod
     def collect_metrics(metrics: Dict[str, Tensor], metrics_i: Dict[str, Tensor], batch_size: int, sub_batch_size: int):
