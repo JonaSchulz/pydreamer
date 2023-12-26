@@ -114,39 +114,24 @@ class MultiDecoder(nn.Module):
         return loss_reconstr, metrics, tensors
 
 
-class RewardTerminalMultiEnv(nn.Module):
-    def __init__(self, conf):
-        raise NotImplementedError
-
-    def forward(self, features: Tensor) -> Tensor:
-        raise NotImplementedError
-
-
 class MultiDecoderMultiEnv(nn.Module):
 
     def __init__(self, features_dim, conf):
         super().__init__()
         self.device = conf.device or 'cuda'
-        # self.decoders = [MultiDecoder(features_dim, conf) for _ in conf.env_id]
-        # TESTING
-        self.decoders = [MultiDecoder(features_dim, conf) for _ in range(2)]
-        self.reward = RewardTerminalMultiEnv(conf)
-        self.terminal = RewardTerminalMultiEnv(conf)
+        self.decoders = [MultiDecoder(features_dim, conf) for _ in conf.env_id]
 
     def training_step(self,
                       features: TensorTBIF,
                       obs: Dict[str, Tensor],
                       extra_metrics: bool = False
                       ) -> Tuple[TensorTBI, Dict[str, Tensor], Dict[str, Tensor]]:
-        #assert 'env_id' in obs.keys(), 'Observation does not contain information about env_id'
+        assert 'env_id' in obs.keys(), 'Observation does not contain information about env_id'
 
         T, B, C, H, W = obs['image'].shape
         loss_reconstr = torch.zeros(T, B, 1, dtype=torch.float32, device=self.device)
         tensors = {}
         metrics = {}
-
-        # TESTING:
-        obs['env_id'] = torch.randint(0, 2, (B,))
 
         if self.decoders[0].image:
             tensors.update(loss_image=torch.zeros(T, B, dtype=torch.float32, device=self.device),
@@ -159,6 +144,8 @@ class MultiDecoderMultiEnv(nn.Module):
 
         for i, dec in enumerate(self.decoders):
             indices = obs['env_id'] == i
+            if torch.sum(indices) == 0:
+                continue
             sub_batch_obs = self.get_sub_batch(obs, i)
             sub_batch_features = features[:, indices]
             loss_reconstr_i, metrics_i, tensors_i = dec.training_step(sub_batch_features, sub_batch_obs, extra_metrics=extra_metrics)

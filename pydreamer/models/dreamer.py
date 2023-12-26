@@ -359,14 +359,12 @@ class WorldModel(nn.Module):
 
         # Encoder
 
-        self.encoder = MultiEncoder(conf)
+        self.encoder = MultiEncoderMultiEnv(conf) if conf.multi_env_encoder else MultiEncoder(conf)
 
         # Decoders
 
         features_dim = conf.deter_dim + conf.stoch_dim * (conf.stoch_discrete or 1)
-        # self.decoder = MultiDecoder(features_dim, conf)
-        # TESTING
-        self.decoder = MultiDecoderMultiEnv(features_dim, conf)
+        self.decoder = MultiDecoderMultiEnv(features_dim, conf) if conf.multi_env_encoder else MultiDecoder(features_dim, conf)
 
         # RSSM
 

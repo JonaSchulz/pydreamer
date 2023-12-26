@@ -157,7 +157,8 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
             steps_per_env[env_index] += 1
 
         episodes += 1
-        data = inf['episode']  # type: ignore
+        data = inf['episode'] # type: ignore
+        data['env_id'] = env_index * np.ones_like(data['terminal'], dtype=int)
         if 'policy_value' in metrics:
             data['policy_value'] = np.array(metrics['policy_value'] + [np.nan])     # last terminal value is null
             data['policy_entropy'] = np.array(metrics['policy_entropy'] + [np.nan])  # last policy is null

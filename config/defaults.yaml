@@ -305,7 +305,8 @@ generator_multi_env:
   generator_prefill_steps: 1000
 
 wm_training:
-  mlflow_run_id:
+  mlflow_run_id: b0f1225f489741b38e072bc660484971
+  multi_env_encoder:
 
 finetune:
   n_steps: 100

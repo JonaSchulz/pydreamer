@@ -85,14 +85,18 @@ class MultiEncoderMultiEnv(nn.Module):
 
     def forward(self, obs: Dict[str, Tensor]) -> TensorTBE:
         assert 'env_id' in obs.keys(), 'Observation does not contain information about env_id'
+        obs['env_id'] = obs['env_id'][0]
         T, B = obs['image'].shape[:2]
         E = self.out_dim
         embed = torch.zeros(T, B, E, dtype=torch.float32, device=self.device)
 
         for i, enc in enumerate(self.encoders):
+            indices = obs['env_id'] == i
+            if torch.sum(indices) == 0:
+                continue
             sub_batch = self.get_sub_batch(obs, i)
             sub_embed = enc(sub_batch)
-            embed[:, obs['env_id'] == i, :] = sub_embed
+            embed[:, indices, :] = sub_embed
 
         return embed
 
