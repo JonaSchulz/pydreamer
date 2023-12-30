@@ -112,25 +112,23 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
 
         # Load network
 
-        for i, _policy in enumerate(policy):
-
-            if isinstance(_policy, DQNPolicy):
-                if time.time() - last_model_load > model_reload_interval:
+        if time.time() - last_model_load > model_reload_interval:
+            for i, _policy in enumerate(policy):
+                if isinstance(_policy, DQNPolicy):
                     model_file = load_dqn_model(_policy.model, model_conf.dqn_dir[env_id[i]])
-                    print(f"Loading model checkpoint {model_file}")
+                    info(f"Loading model checkpoint {model_file}")
 
-            elif isinstance(_policy, NetworkPolicy):
-                if time.time() - last_model_load > model_reload_interval:
+                elif isinstance(_policy, NetworkPolicy):
                     while True:
                         # takes ~10sec to load checkpoint
                         model_step = mlflow_load_checkpoint(_policy.model, artifact_path=conf.model_path[i], map_location='cpu')  # type: ignore
                         if model_step:
                             info(f'Generator loaded model checkpoint {model_step}')
-                            last_model_load = time.time()
                             break
                         else:
                             debug('Generator model checkpoint not found, waiting...')
                             time.sleep(10)
+            last_model_load = time.time()
 
             if limit_step_ratio and steps_saved >= model_step * limit_step_ratio:
                 # Rate limiting - keep looping until new model checkpoint is loaded
@@ -140,7 +138,7 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
         # Unroll one episode
         # env_index = np.random.randint(0, len(env))
         env_index = np.argmin(steps_per_env)
-        print(f"Steps per env: {list(zip(env_id, steps_per_env))}")
+        # print(f"Steps per env: {list(zip(env_id, steps_per_env))}")
         epsteps = 0
         timer = time.time()
         obs = env[env_index].reset()

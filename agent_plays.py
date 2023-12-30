@@ -35,7 +35,6 @@ def main(model_path=None,
 
     for _ in range(num_episodes):
         epsteps = 0
-        timer = time.time()
         obs = env.reset()
         done = False
 
@@ -43,6 +42,8 @@ def main(model_path=None,
             action, mets = policy(obs)
             obs, reward, done, inf = env.step(action)
             epsteps += 1
+
+        time.sleep(1)
 
 
 if __name__ == "__main__":

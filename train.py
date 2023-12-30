@@ -179,7 +179,6 @@ def run(conf):
                             states[wid] = new_state
 
                 # Backward
-
                 with timer('backward'):
 
                     for opt in optimizers:

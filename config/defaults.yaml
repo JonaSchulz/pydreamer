@@ -213,6 +213,7 @@ minatar:
   image_channels: 11
   image_categorical: True
   # Model
+  multi_env_encoder:
   image_encoder: cnn_minatar
   image_decoder: cnn_minatar
   cnn_depth: 8
@@ -302,14 +303,16 @@ generator_multi_env:
              MinAtar/Freeway-v0: dqn/freeway,
              MinAtar/Seaquest-v0: dqn/seaquest
             }
-  generator_prefill_steps: 1000
+  generator_prefill_steps: 100_000
+  n_env_steps: 10_000_000
 
 wm_training:
-  mlflow_run_id: b0f1225f489741b38e072bc660484971
+  mlflow_run_id: 1420c2c9944e43aa9463e045ed4ac11f
   multi_env_encoder:
+  n_steps: 100_000_000
+  n_env_steps: 10_000_000_000
 
 finetune:
-  n_steps: 100
-  n_steps_wm: 20
-  adam_lr: 3.0e-6
-  model_checkpoint: abc
+  n_steps: 20_000
+  n_steps_wm: 5_000
+  model_checkpoint:
