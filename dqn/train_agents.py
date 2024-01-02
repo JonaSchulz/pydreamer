@@ -6,10 +6,10 @@ env_ids = ['MinAtar/Asterix-v0', 'MinAtar/Breakout-v0', 'MinAtar/Seaquest-v0', '
 model_dirs = ['asterix', 'breakout', 'seaquest', 'freeway']
 num_steps = [1000000, 10000000]
 
-agent = Agent(env_ids[3])
-agent.policy_net.load_state_dict(torch.load("freeway/model_100000.pt", map_location="cpu"))
-agent.play(50)
-exit()
+# agent = Agent(env_ids[3])
+# agent.policy_net.load_state_dict(torch.load("freeway/model_100000.pt", map_location="cpu"))
+# agent.play(50)
+# exit()
 
 for i, _id in enumerate(env_ids):
     agent = Agent(_id)

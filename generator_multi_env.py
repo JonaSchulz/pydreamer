@@ -11,6 +11,7 @@ from logging import critical, debug, error, info, warning
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import random
+import cv2
 
 import mlflow
 import numpy as np
@@ -24,11 +25,18 @@ from pydreamer.models.functions import map_structure
 from pydreamer.preprocessing import Preprocessor, to_onehot
 from pydreamer.tools import *
 from dqn.agent import DQN
+from atari_net.model import AtariNet, _load_checkpoint
 
 
 def load_dqn_model(model, model_dir):
     model_file = os.path.join(model_dir, random.choice(os.listdir(model_dir)))
     model.load_state_dict(torch.load(model_file, map_location='cpu'))
+    return model_file
+
+
+def load_atari_net_model(policy, model_dir):
+    model_file = os.path.join(model_dir, random.choice(os.listdir(model_dir)))
+    policy.load_checkpoint(model_file)
     return model_file
 
 
@@ -114,7 +122,11 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
 
         if time.time() - last_model_load > model_reload_interval:
             for i, _policy in enumerate(policy):
-                if isinstance(_policy, DQNPolicy):
+                if isinstance(_policy, AtariNetPolicy):
+                    model_file = load_atari_net_model(_policy, model_conf.atari_net_dir[env_id[i]])
+                    info(f"Loading model checkpoint {model_file}")
+
+                elif isinstance(_policy, DQNPolicy):
                     model_file = load_dqn_model(_policy.model, model_conf.dqn_dir[env_id[i]])
                     info(f"Loading model checkpoint {model_file}")
 
@@ -279,6 +291,10 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
 
 
 def create_policy(policy_type: str, env, model_conf, env_id=None):
+    if policy_type == 'atari_net':
+        assert env_id is not None, 'Specify env_id'
+        return AtariNetPolicy(env_id)
+
     if policy_type == 'dqn':
         assert env_id is not None, 'Specify env_id'
         return DQNPolicy(env_id, model_conf.image_size, model_conf.action_dim)
@@ -321,6 +337,51 @@ def create_policy(policy_type: str, env, model_conf, env_id=None):
         return MazeDijkstraPolicy(step_size, turn_size, goal_strategy='goal_direction', random_prob=0)
 
     raise ValueError(policy_type)
+
+
+class AtariNetPolicy:
+
+    action_space = {
+        "Atari-Pong": [0, 1, 3, 4, 11, 12],
+        "Atari-Asterix": [0, 2, 3, 4, 5, 6, 7, 8, 9]
+    }
+
+    def __init__(self, env_id):
+        self.env_id = env_id
+        self.model = AtariNet(len(AtariNetPolicy.action_space[env_id]))
+        self.image_buffer = torch.zeros(4, 84, 84, dtype=torch.uint8)
+
+    def __call__(self, obs) -> Tuple[int, dict]:
+        # import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots(4)
+        # for i, _ax in enumerate(ax):
+        #     _ax.imshow(self.image_buffer[i])
+        # plt.show()
+        img = self.rgb2gray(obs['image'])
+        img = cv2.resize(img, (84, 84), interpolation=cv2.INTER_CUBIC)
+        img = torch.from_numpy(img).to(torch.uint8)
+        self.push_to_buffer(img)
+        action = self.epsilon_greedy()
+        return action, {}
+
+    def push_to_buffer(self, img):
+        self.image_buffer = torch.cat((self.image_buffer[1:, :, :], torch.Tensor(img.unsqueeze(dim=0))))
+
+    def epsilon_greedy(self, eps=0.001):
+        if torch.rand((1,)).item() < eps:
+            return torch.randint(self.model.action_no, (1,)).item()
+        q_val, argmax_a = self.model(self.image_buffer.unsqueeze(dim=0)).max(1)
+        action = argmax_a.item()
+        action = AtariNetPolicy.action_space[self.env_id][action]
+        return action
+
+    def load_checkpoint(self, path):
+        ckpt = _load_checkpoint(path)
+        self.model.load_state_dict(ckpt["estimator_state"])
+
+    @staticmethod
+    def rgb2gray(rgb):
+        return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
 
 class DQNPolicy:

@@ -306,9 +306,20 @@ generator_multi_env:
   generator_prefill_steps: 100_000
   n_env_steps: 10_000_000
 
+generator_multi_env_atari:
+  env_id:
+    - Atari-Pong
+    - Atari-Asterix
+  policy_main: atari_net
+  atari_net_dir: { Atari-Pong: atari_net/checkpoints/Pong,
+                   Atari-Asterix: atari_net/checkpoints/Asterix
+                 }
+  generator_prefill_steps: 0
+  n_env_steps: 10_000_000
+
 wm_training:
-  mlflow_run_id: 1420c2c9944e43aa9463e045ed4ac11f
-  multi_env_encoder:
+  mlflow_run_id: 75dbc64597ae4dbfb14630247aa2cd50
+  multi_env_encoder: True
   n_steps: 100_000_000
   n_env_steps: 10_000_000_000
 
