@@ -12,6 +12,8 @@ from pydreamer.preprocessing import Preprocessor
 from pydreamer.tools import *
 from generator import create_policy, RandomPolicy, NetworkPolicy
 
+model_path = "mlruns/0/1420c2c9944e43aa9463e045ed4ac11f/artifacts/checkpoints/latest.pt"
+
 
 def main(model_path=None,
          num_episodes=50,
@@ -35,7 +37,6 @@ def main(model_path=None,
 
     for _ in range(num_episodes):
         epsteps = 0
-        timer = time.time()
         obs = env.reset()
         done = False
 
@@ -43,6 +44,8 @@ def main(model_path=None,
             action, mets = policy(obs)
             obs, reward, done, inf = env.step(action)
             epsteps += 1
+
+        time.sleep(1)
 
 
 if __name__ == "__main__":
@@ -73,7 +76,7 @@ if __name__ == "__main__":
         parser.add_argument(f'--{key}', type=type_, default=value)
     conf = parser.parse_args(remaining)
 
-    main(model_path=args.model_path,
+    main(model_path=args.model_path if args.model_path is not None else model_path,
          num_episodes=args.num_episodes,
          env_id=args.env_id,
          policy=args.policy,

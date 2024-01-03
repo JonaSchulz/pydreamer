@@ -23,7 +23,7 @@ class MultiEncoder(nn.Module):
 
         elif conf.image_encoder == 'cnn_minatar':
             self.encoder_image = ConvEncoderMinatar(in_channels=encoder_channels,
-                                             cnn_depth=conf.cnn_depth)
+                                                    cnn_depth=conf.cnn_depth)
 
         elif conf.image_encoder == 'dense':
             self.encoder_image = DenseEncoder(in_dim=conf.image_size * conf.image_size * encoder_channels,
@@ -72,6 +72,43 @@ class MultiEncoder(nn.Module):
 
         embed = torch.cat(embeds, dim=-1)  # (T,B,E+256)
         return embed
+
+
+class MultiEncoderMultiEnv(nn.Module):
+
+    def __init__(self, conf):
+        super().__init__()
+        self.reward_input = conf.reward_input
+        self.device = conf.device or 'cuda'
+        self.encoders = [MultiEncoder(conf) for _ in conf.env_id]
+        self.out_dim = self.encoders[0].out_dim
+
+    def forward(self, obs: Dict[str, Tensor]) -> TensorTBE:
+        assert 'env_id' in obs.keys(), 'Observation does not contain information about env_id'
+        obs['env_id'] = obs['env_id'][0]
+        T, B = obs['image'].shape[:2]
+        E = self.out_dim
+        embed = torch.zeros(T, B, E, dtype=torch.float32, device=self.device)
+
+        for i, enc in enumerate(self.encoders):
+            indices = obs['env_id'] == i
+            if torch.sum(indices) == 0:
+                continue
+            sub_batch = self.get_sub_batch(obs, i)
+            sub_embed = enc(sub_batch)
+            embed[:, indices, :] = sub_embed
+
+        return embed
+
+    @staticmethod
+    def get_sub_batch(obs: Dict[str, Tensor], i: int) -> Dict[str, Tensor]:
+        indices = obs['env_id'] == i
+        sub_batch = {}
+        for key, val in obs.items():
+            if key == 'env_id':
+                continue
+            sub_batch[key] = val[:, indices]
+        return sub_batch
 
 
 class ConvEncoder(nn.Module):

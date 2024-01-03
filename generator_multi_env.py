@@ -11,6 +11,7 @@ from logging import critical, debug, error, info, warning
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import random
+import cv2
 
 import mlflow
 import numpy as np
@@ -24,11 +25,18 @@ from pydreamer.models.functions import map_structure
 from pydreamer.preprocessing import Preprocessor, to_onehot
 from pydreamer.tools import *
 from dqn.agent import DQN
+from atari_net.model import AtariNet, _load_checkpoint
 
 
 def load_dqn_model(model, model_dir):
     model_file = os.path.join(model_dir, random.choice(os.listdir(model_dir)))
     model.load_state_dict(torch.load(model_file, map_location='cpu'))
+    return model_file
+
+
+def load_atari_net_model(policy, model_dir):
+    model_file = os.path.join(model_dir, random.choice(os.listdir(model_dir)))
+    policy.load_checkpoint(model_file)
     return model_file
 
 
@@ -112,25 +120,27 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
 
         # Load network
 
-        for i, _policy in enumerate(policy):
+        if time.time() - last_model_load > model_reload_interval:
+            for i, _policy in enumerate(policy):
+                if isinstance(_policy, AtariNetPolicy):
+                    model_file = load_atari_net_model(_policy, model_conf.atari_net_dir[env_id[i]])
+                    info(f"Loading model checkpoint {model_file}")
 
-            if isinstance(_policy, DQNPolicy):
-                if time.time() - last_model_load > model_reload_interval:
+                elif isinstance(_policy, DQNPolicy):
                     model_file = load_dqn_model(_policy.model, model_conf.dqn_dir[env_id[i]])
-                    print(f"Loading model checkpoint {model_file}")
+                    info(f"Loading model checkpoint {model_file}")
 
-            elif isinstance(_policy, NetworkPolicy):
-                if time.time() - last_model_load > model_reload_interval:
+                elif isinstance(_policy, NetworkPolicy):
                     while True:
                         # takes ~10sec to load checkpoint
                         model_step = mlflow_load_checkpoint(_policy.model, artifact_path=conf.model_path[i], map_location='cpu')  # type: ignore
                         if model_step:
                             info(f'Generator loaded model checkpoint {model_step}')
-                            last_model_load = time.time()
                             break
                         else:
                             debug('Generator model checkpoint not found, waiting...')
                             time.sleep(10)
+            last_model_load = time.time()
 
             if limit_step_ratio and steps_saved >= model_step * limit_step_ratio:
                 # Rate limiting - keep looping until new model checkpoint is loaded
@@ -140,7 +150,7 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
         # Unroll one episode
         # env_index = np.random.randint(0, len(env))
         env_index = np.argmin(steps_per_env)
-        print(f"Steps per env: {list(zip(env_id, steps_per_env))}")
+        # print(f"Steps per env: {list(zip(env_id, steps_per_env))}")
         epsteps = 0
         timer = time.time()
         obs = env[env_index].reset()
@@ -157,7 +167,8 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
             steps_per_env[env_index] += 1
 
         episodes += 1
-        data = inf['episode']  # type: ignore
+        data = inf['episode'] # type: ignore
+        data['env_id'] = env_index * np.ones_like(data['terminal'], dtype=int)
         if 'policy_value' in metrics:
             data['policy_value'] = np.array(metrics['policy_value'] + [np.nan])     # last terminal value is null
             data['policy_entropy'] = np.array(metrics['policy_entropy'] + [np.nan])  # last policy is null
@@ -280,6 +291,10 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
 
 
 def create_policy(policy_type: str, env, model_conf, env_id=None):
+    if policy_type == 'atari_net':
+        assert env_id is not None, 'Specify env_id'
+        return AtariNetPolicy(env_id)
+
     if policy_type == 'dqn':
         assert env_id is not None, 'Specify env_id'
         return DQNPolicy(env_id, model_conf.image_size, model_conf.action_dim)
@@ -322,6 +337,107 @@ def create_policy(policy_type: str, env, model_conf, env_id=None):
         return MazeDijkstraPolicy(step_size, turn_size, goal_strategy='goal_direction', random_prob=0)
 
     raise ValueError(policy_type)
+
+
+class AtariNetPolicy:
+
+    action_space = {
+        "Atari-Adventure": None,
+        "Atari-AirRaid": [0, 1, 3, 4, 11, 12],
+        "Atari-Alien": None,
+        "Atari-Amidar": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
+        "Atari-Assault": [0, 1, 2, 3, 4, 11, 12],
+        "Atari-Asterix": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Asteroids": [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15],
+        "Atari-Atlantis": [0, 1, 11, 12],
+        "Atari-BankHeist": None,
+        "Atari-BattleZone": None,
+        "Atari-BeamRider": [0, 1, 2, 3, 4, 6, 7, 11, 12],
+        "Atari-Berzerk": None,
+        "Atari-Bowling": [0, 1, 2, 5, 10, 13],
+        "Atari-Boxing": None,
+        "Atari-Breakout": [0, 1, 3, 4],
+        "Atari-Carnival": [0, 1, 3, 4, 11, 12],
+        "Atari-Centipede": None,
+        "Atari-ChopperCommand": None,
+        "Atari-CrazyClimber": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Defender": None,
+        "Atari-DemonAttack": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-DoubleDunk": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-ElevatorAction": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Enduro": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-FishingDerby": None,
+        "Atari-Freeway": None,
+        "Atari-Frostbite": None,
+        "Atari-Gopher": None,
+        "Atari-Gravitar": None,
+        "Atari-Hero": None,
+        "Atari-IceHockey": None,
+        "Atari-Jamesbond": None,
+        "Atari-JorneyEscape": None,
+        "Atari-Kangaroo": None,
+        "Atari-Krull": None,
+        "Atari-KungFuMaster": [0, 2, 3, 4, 5, 8, 9, 11, 12, 13, 14, 15, 16, 17],
+        "Atari-MontezumaRevenge": None,
+        "Atari-MsPacman": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-NameThisGame": [0, 1, 3, 4, 11, 12],
+        "Atari-Phoenix": [0, 1, 3, 4, 5, 11, 12, 13],
+        "Atari-Pitfall": None,
+        "Atari-Pong": [0, 1, 3, 4, 11, 12],
+        "Atari-Pooyan": [0, 1, 2, 5, 10, 13],
+        "Atari-PrivateEye": None,
+        "Atari-Qbert": [0, 1, 2, 3, 4, 5],
+        "Atari-Riverraid": None,
+        "Atari-RoadRunner": None,
+        "Atari-RobotTank": None,
+        "Atari-Seaquest": None,
+        "Atari-Skiings": [0, 3, 4],
+        "Atari-Solaris": None,
+        "Atari-SpaceInvaders": [0, 1, 3, 4, 11, 12],
+        "Atari-StarGunner": [0, 1, 2, 3, 4, 5],
+        "Atari-Tennis": None,
+        "Atari-TimePilot": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
+        "Atari-Tutankham": [0, 2, 3, 4, 5, 10, 11, 12],
+        "Atari-UpNDown": [0, 1, 2, 5, 10, 13],
+        "Atari-Venture": None,
+        "Atari-VideoPinball": [0, 1, 2, 3, 4, 5, 10, 11, 12],
+        "Atari-WizardOfWor": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
+        "Atari-Zaxxon": None
+    }
+
+    def __init__(self, env_id):
+        self.env_id = env_id
+        self.model = AtariNet(len(AtariNetPolicy.action_space[env_id]))
+        self.image_buffer = torch.zeros(4, 84, 84, dtype=torch.uint8)
+
+    def __call__(self, obs) -> Tuple[int, dict]:
+        img = self.rgb2gray(obs['image'])
+        img = cv2.resize(img, (84, 84), interpolation=cv2.INTER_CUBIC)
+        img = torch.from_numpy(img).to(torch.uint8)
+        self.push_to_buffer(img)
+        action = self.epsilon_greedy()
+        return action, {}
+
+    def push_to_buffer(self, img):
+        self.image_buffer = torch.cat((self.image_buffer[1:, :, :], torch.Tensor(img.unsqueeze(dim=0))))
+
+    def epsilon_greedy(self, eps=0.001):
+        if torch.rand((1,)).item() < eps:
+            return torch.randint(self.model.action_no, (1,)).item()
+        q_val, argmax_a = self.model(self.image_buffer.unsqueeze(dim=0)).max(1)
+        action = argmax_a.item()
+        action_space = AtariNetPolicy.action_space[self.env_id]
+        if action_space is not None:
+            action = action_space[action]
+        return action
+
+    def load_checkpoint(self, path):
+        ckpt = _load_checkpoint(path)
+        self.model.load_state_dict(ckpt["estimator_state"])
+
+    @staticmethod
+    def rgb2gray(rgb):
+        return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
 
 class DQNPolicy:

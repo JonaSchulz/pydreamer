@@ -141,7 +141,6 @@ class Dreamer(nn.Module):
         I, H = iwae_samples, imag_horizon
 
         # World model
-
         loss_model, features, states, out_state, metrics, tensors = \
             self.wm.training_step(obs,
                                   in_state,
@@ -157,7 +156,6 @@ class Dreamer(nn.Module):
         tensors.update(**tensors_probe)
 
         # Policy
-
         in_state_dream: StateB = map_structure(states, lambda x: flatten_batch(x.detach())[0])  # type: ignore  # (T,B,I) => (TBI)
         # Note features_dream includes the starting "real" features at features_dream[0]
         features_dream, actions_dream, rewards_dream, terminals_dream = \
@@ -359,12 +357,12 @@ class WorldModel(nn.Module):
 
         # Encoder
 
-        self.encoder = MultiEncoder(conf)
+        self.encoder = MultiEncoderMultiEnv(conf) if conf.multi_env_encoder else MultiEncoder(conf)
 
         # Decoders
 
         features_dim = conf.deter_dim + conf.stoch_dim * (conf.stoch_discrete or 1)
-        self.decoder = MultiDecoder(features_dim, conf)
+        self.decoder = MultiDecoderMultiEnv(features_dim, conf) if conf.multi_env_encoder else MultiDecoder(features_dim, conf)
 
         # RSSM
 

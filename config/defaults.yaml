@@ -213,6 +213,7 @@ minatar:
   image_channels: 11
   image_categorical: True
   # Model
+  multi_env_encoder:
   image_encoder: cnn_minatar
   image_decoder: cnn_minatar
   cnn_depth: 8
@@ -221,33 +222,6 @@ minatar:
   kl_weight: 0.1
   gamma: 0.99
   entropy: 0.001
-
-minatar_multi_env:
-  n_env_steps: 200_000_000
-  # Env
-  num_envs: 4
-  env_id: MinAtar/Breakout-v0
-  action_dim: 6
-  env_time_limit: 27_000  # =108_000/action_repeat = 30 minutes of game play.
-  generator_workers: 0
-  clip_rewards: tanh
-  offline_data_dir: # Specify directory for mixed-environment episodes
-  # Features
-  image_size: 10
-  image_channels: 5
-  image_categorical: True
-  # Model
-  image_encoder: cnn_minatar
-  image_decoder: cnn_minatar
-  cnn_depth: 8
-  deter_dim: 256
-  hidden_dim: 200
-  kl_weight: 0.1
-  gamma: 0.99
-  entropy: 0.001
-  # Data Generation
-  model_path:
-    - checkpoints/latest.pt
 
 dmc:
   env_id: DMC-quadruped_run
@@ -329,13 +303,27 @@ generator_multi_env:
              MinAtar/Freeway-v0: dqn/freeway,
              MinAtar/Seaquest-v0: dqn/seaquest
             }
-  generator_prefill_steps: 1000
+  generator_prefill_steps: 100_000
+  n_env_steps: 10_000_000
+
+generator_multi_env_atari:
+  env_id:
+    - Atari-Pong
+    - Atari-Asterix
+  policy_main: atari_net
+  atari_net_dir: { Atari-Pong: atari_net/checkpoints/Pong,
+                   Atari-Asterix: atari_net/checkpoints/Asterix
+                 }
+  generator_prefill_steps: 0
+  n_env_steps: 10_000_000
 
 wm_training:
-  mlflow_run_id:
+  mlflow_run_id: 75dbc64597ae4dbfb14630247aa2cd50
+  multi_env_encoder: True
+  n_steps: 100_000_000
+  n_env_steps: 10_000_000_000
 
 finetune:
-  n_steps: 100
-  n_steps_wm: 20
-  adam_lr: 3.0e-6
-  model_checkpoint: abc
+  n_steps: 20_000
+  n_steps_wm: 5_000
+  model_checkpoint:
