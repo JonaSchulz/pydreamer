@@ -2,6 +2,8 @@ torch
 gym==0.19.0
 backoff
 MinAtar
+gymnasium
+opencv-python
 
 # Logging
 mlflow

@@ -107,4 +107,4 @@ ENV LANG "C.UTF-8"
 
 COPY . .
 
-ENTRYPOINT ["sh", "scripts/xvfb_run.sh", "python3", "launch.py"]
+ENTRYPOINT ["sh", "scripts/xvfb_run.sh", "python3", "launch_generator_multi_env.py"]

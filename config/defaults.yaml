@@ -313,7 +313,7 @@ generator_multi_env_atari:
   atari_net_dir: { Atari-air_raid: atari_net/checkpoints/AirRaid
                  }
   generator_prefill_steps: 0
-  n_env_steps: 10_000_000
+  n_env_steps: 200_000_000
 
 wm_training:
   mlflow_run_id: 75dbc64597ae4dbfb14630247aa2cd50
