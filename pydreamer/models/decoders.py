@@ -114,6 +114,73 @@ class MultiDecoder(nn.Module):
         return loss_reconstr, metrics, tensors
 
 
+class MultiDecoderMultiEnv(nn.Module):
+
+    def __init__(self, features_dim, conf):
+        super().__init__()
+        self.device = conf.device or 'cuda'
+        self.decoders = [MultiDecoder(features_dim, conf) for _ in conf.env_id]
+
+    def training_step(self,
+                      features: TensorTBIF,
+                      obs: Dict[str, Tensor],
+                      extra_metrics: bool = False
+                      ) -> Tuple[TensorTBI, Dict[str, Tensor], Dict[str, Tensor]]:
+        assert 'env_id' in obs.keys(), 'Observation does not contain information about env_id'
+
+        T, B, C, H, W = obs['image'].shape
+        loss_reconstr = torch.zeros(T, B, 1, dtype=torch.float32, device=self.device)
+        tensors = {}
+        metrics = {}
+
+        if self.decoders[0].image:
+            tensors.update(loss_image=torch.zeros(T, B, dtype=torch.float32, device=self.device),
+                           image_rec=torch.zeros(T, B, C, H, W, dtype=torch.float32, device=self.device))
+
+        tensors.update(loss_reward=torch.zeros(T, B, dtype=torch.float32, device=self.device),
+                       reward_rec=torch.zeros(T, B, dtype=torch.float32, device=self.device),
+                       loss_terminal=torch.zeros(T, B, dtype=torch.float32, device=self.device),
+                       terminal_rec=torch.zeros(T, B, dtype=torch.float32, device=self.device))
+
+        for i, dec in enumerate(self.decoders):
+            indices = obs['env_id'] == i
+            if torch.sum(indices) == 0:
+                continue
+            sub_batch_obs = self.get_sub_batch(obs, i)
+            sub_batch_features = features[:, indices]
+            loss_reconstr_i, metrics_i, tensors_i = dec.training_step(sub_batch_features, sub_batch_obs, extra_metrics=extra_metrics)
+            loss_reconstr[:, indices, :] = loss_reconstr_i
+            self.update_dict(tensors, tensors_i, indices, B)
+            self.collect_metrics(metrics, metrics_i, indices.size(dim=0), torch.sum(indices))
+
+        return loss_reconstr, metrics, tensors
+
+    def update_dict(self, global_dict: Dict[str, Tensor], sub_dict: Dict[str, Tensor], indices: Tensor, batch_size: int):
+        for key, val in sub_dict.items():
+            if key not in global_dict.keys():
+                T = val.shape[0]
+                global_dict[key] = torch.zeros(T, batch_size, dtype=torch.float32, device=self.device)
+            global_dict[key][:, indices] = val
+
+    @staticmethod
+    def get_sub_batch(obs: Dict[str, Tensor], i: int) -> Dict[str, Tensor]:
+        indices = obs['env_id'] == i
+        sub_batch = {}
+        for key, val in obs.items():
+            if key == 'env_id':
+                continue
+            sub_batch[key] = val[:, indices]
+        return sub_batch
+
+    @staticmethod
+    def collect_metrics(metrics: Dict[str, Tensor], metrics_i: Dict[str, Tensor], batch_size: int, sub_batch_size: int):
+        for key, val in metrics_i.items():
+            if key not in metrics.keys():
+                metrics[key] = val * sub_batch_size / batch_size
+            else:
+                metrics[key] += val * sub_batch_size / batch_size
+
+
 class ConvDecoder(nn.Module):
 
     def __init__(self,
