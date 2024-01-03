@@ -308,11 +308,9 @@ generator_multi_env:
 
 generator_multi_env_atari:
   env_id:
-    - Atari-Pong
-    - Atari-Asterix
+    - Atari-air_raid
   policy_main: atari_net
-  atari_net_dir: { Atari-Pong: atari_net/checkpoints/Pong,
-                   Atari-Asterix: atari_net/checkpoints/Asterix
+  atari_net_dir: { Atari-air_raid: atari_net/checkpoints/AirRaid
                  }
   generator_prefill_steps: 0
   n_env_steps: 10_000_000

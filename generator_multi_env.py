@@ -343,7 +343,7 @@ class AtariNetPolicy:
 
     action_space = {
         "Atari-Adventure": None,
-        "Atari-AirRaid": [0, 1, 3, 4, 11, 12],
+        "Atari-air_raid": [0, 1, 3, 4, 11, 12],
         "Atari-Alien": None,
         "Atari-Amidar": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
         "Atari-Assault": [0, 1, 2, 3, 4, 11, 12],
