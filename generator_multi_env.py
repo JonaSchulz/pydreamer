@@ -342,8 +342,67 @@ def create_policy(policy_type: str, env, model_conf, env_id=None):
 class AtariNetPolicy:
 
     action_space = {
+        "Atari-Adventure": None,
+        "Atari-AirRaid": [0, 1, 3, 4, 11, 12],
+        "Atari-Alien": None,
+        "Atari-Amidar": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
+        "Atari-Assault": [0, 1, 2, 3, 4, 11, 12],
+        "Atari-Asterix": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Asteroids": [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15],
+        "Atari-Atlantis": [0, 1, 11, 12],
+        "Atari-BankHeist": None,
+        "Atari-BattleZone": None,
+        "Atari-BeamRider": [0, 1, 2, 3, 4, 6, 7, 11, 12],
+        "Atari-Berzerk": None,
+        "Atari-Bowling": [0, 1, 2, 5, 10, 13],
+        "Atari-Boxing": None,
+        "Atari-Breakout": [0, 1, 3, 4],
+        "Atari-Carnival": [0, 1, 3, 4, 11, 12],
+        "Atari-Centipede": None,
+        "Atari-ChopperCommand": None,
+        "Atari-CrazyClimber": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Defender": None,
+        "Atari-DemonAttack": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-DoubleDunk": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-ElevatorAction": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Enduro": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-FishingDerby": None,
+        "Atari-Freeway": None,
+        "Atari-Frostbite": None,
+        "Atari-Gopher": None,
+        "Atari-Gravitar": None,
+        "Atari-Hero": None,
+        "Atari-IceHockey": None,
+        "Atari-Jamesbond": None,
+        "Atari-JorneyEscape": None,
+        "Atari-Kangaroo": None,
+        "Atari-Krull": None,
+        "Atari-KungFuMaster": [0, 2, 3, 4, 5, 8, 9, 11, 12, 13, 14, 15, 16, 17],
+        "Atari-MontezumaRevenge": None,
+        "Atari-MsPacman": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-NameThisGame": [0, 1, 3, 4, 11, 12],
+        "Atari-Phoenix": [0, 1, 3, 4, 5, 11, 12, 13],
+        "Atari-Pitfall": None,
         "Atari-Pong": [0, 1, 3, 4, 11, 12],
-        "Atari-Asterix": [0, 2, 3, 4, 5, 6, 7, 8, 9]
+        "Atari-Pooyan": [0, 1, 2, 5, 10, 13],
+        "Atari-PrivateEye": None,
+        "Atari-Qbert": [0, 1, 2, 3, 4, 5],
+        "Atari-Riverraid": None,
+        "Atari-RoadRunner": None,
+        "Atari-RobotTank": None,
+        "Atari-Seaquest": None,
+        "Atari-Skiings": [0, 3, 4],
+        "Atari-Solaris": None,
+        "Atari-SpaceInvaders": [0, 1, 3, 4, 11, 12],
+        "Atari-StarGunner": [0, 1, 2, 3, 4, 5],
+        "Atari-Tennis": None,
+        "Atari-TimePilot": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
+        "Atari-Tutankham": [0, 2, 3, 4, 5, 10, 11, 12],
+        "Atari-UpNDown": [0, 1, 2, 5, 10, 13],
+        "Atari-Venture": None,
+        "Atari-VideoPinball": [0, 1, 2, 3, 4, 5, 10, 11, 12],
+        "Atari-WizardOfWor": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
+        "Atari-Zaxxon": None
     }
 
     def __init__(self, env_id):
@@ -352,11 +411,6 @@ class AtariNetPolicy:
         self.image_buffer = torch.zeros(4, 84, 84, dtype=torch.uint8)
 
     def __call__(self, obs) -> Tuple[int, dict]:
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(4)
-        # for i, _ax in enumerate(ax):
-        #     _ax.imshow(self.image_buffer[i])
-        # plt.show()
         img = self.rgb2gray(obs['image'])
         img = cv2.resize(img, (84, 84), interpolation=cv2.INTER_CUBIC)
         img = torch.from_numpy(img).to(torch.uint8)
@@ -372,7 +426,9 @@ class AtariNetPolicy:
             return torch.randint(self.model.action_no, (1,)).item()
         q_val, argmax_a = self.model(self.image_buffer.unsqueeze(dim=0)).max(1)
         action = argmax_a.item()
-        action = AtariNetPolicy.action_space[self.env_id][action]
+        action_space = AtariNetPolicy.action_space[self.env_id]
+        if action_space is not None:
+            action = action_space[action]
         return action
 
     def load_checkpoint(self, path):
