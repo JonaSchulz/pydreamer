@@ -107,6 +107,11 @@ def run(conf):
         model: Dreamer = WorldModelProbe(conf)  # type: ignore
     model.to(device)
 
+    # keep RSSM frozen, only fine-tune encoder/decoder
+    if conf.freeze_rssm:
+        for parameter in model.wm.core.parameters():
+            parameter.requires_grad = False
+
     print(model)
     # print(repr(model))
     mlflow_log_text(repr(model), 'architecture.txt')

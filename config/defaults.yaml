@@ -327,3 +327,4 @@ finetune:
   n_steps: 20_000
   n_steps_wm: 5_000
   model_checkpoint:
+  freeze_rssm: True
