@@ -109,8 +109,7 @@ def run(conf):
 
     # keep RSSM frozen, only fine-tune encoder/decoder
     if conf.freeze_rssm:
-        for parameter in model.wm.core.parameters():
-            parameter.requires_grad = False
+        model.wm.core.requires_grad_(False)
 
     print(model)
     # print(repr(model))
@@ -198,6 +197,10 @@ def run(conf):
 
                         if conf.keep_state:
                             states[wid] = new_state
+
+                        # keep RSSM frozen, only fine-tune encoder/decoder
+                        if conf.freeze_rssm:
+                            model.wm.core.requires_grad_(False)
 
                 # Backward
                 if steps >= conf.n_steps_wm:

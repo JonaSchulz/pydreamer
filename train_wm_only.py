@@ -112,8 +112,9 @@ def run(conf):
     mlflow_log_text(repr(model), 'architecture.txt')
 
     optimizers = model.init_optimizers(conf.adam_lr, conf.adam_lr_actor, conf.adam_lr_critic, conf.adam_eps)
-    resume_step = tools.mlflow_load_checkpoint(model, optimizers)
     optimizers = optimizers[:-2]
+    resume_step = tools.mlflow_load_checkpoint(model, optimizers)
+
     if resume_step:
         info(f'Loaded model from checkpoint epoch {resume_step}')
 
