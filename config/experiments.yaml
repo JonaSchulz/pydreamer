@@ -7,7 +7,7 @@ atari_pong:
   env_id: Atari-Pong
 
 atari_breakout:
-  n_env_steps: 100_000_000
+  n_env_steps: 10_000_000
   env_id: Atari-Breakout
 
 atari_montezuma:
@@ -17,6 +17,10 @@ atari_montezuma:
 atari_spaceinvaders:
   n_env_steps: 200_000_000
   env_id: Atari-Space_Invaders
+
+atari_air_raid:
+  n_env_steps: 10_000_000
+  env_id: Atari-Air_Raid
 
 # -------------------------
 # DMC

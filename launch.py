@@ -26,8 +26,10 @@ def launch():
     for name in args.configs:
         if ',' in name:
             for n in name.split(','):
+                n = n.replace('\r','')
                 conf.update(configs[n])
         else:
+            name = name.replace('\r','')
             conf.update(configs[name])
 
     # Override config from command-line
