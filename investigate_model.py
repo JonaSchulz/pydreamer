@@ -15,9 +15,9 @@ from dqn.agent import DQN
 
 
 model_path = "mlruns/0/1420c2c9944e43aa9463e045ed4ac11f/artifacts/checkpoints/latest.pt"
-env_id = "MinAtar/Seaquest-v0"
+env_id = "MinAtar/Breakout-v0"
 num_steps = 10000
-dqn_path = "dqn/seaquest/model_100000.pt"
+dqn_path = "dqn/breakout/model_100000.pt"
 
 
 def main(worker_id=0,
