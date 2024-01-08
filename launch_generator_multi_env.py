@@ -26,10 +26,14 @@ def launch():
     conf = {}
     configs = read_yamls('./config')
     for name in args.configs:
+        print(name)
         if ',' in name:
             for n in name.split(','):
+                # remove "\r" from the end of the line
+                n = n.replace('\r', '')
                 conf.update(configs[n])
         else:
+            name = name.replace('\r', '')
             conf.update(configs[name])
 
     # Override config from command-line
