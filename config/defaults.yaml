@@ -308,20 +308,39 @@ generator_multi_env:
 
 generator_multi_env_atari:
   env_id:
-    - Atari-air_raid
+    - Atari-Air_Raid
+    - Atari-Assault
+    - Atari-Beam_Rider
+    - Atari-Carnival
+    - Atari-Journey_Escape
+    - Atari-Phoenix
+    - Atari-Pong
+    - Atari-Private_Eye
+    - Atari-Riverraid
   policy_main: atari_net
-  atari_net_dir: { Atari-air_raid: atari_net/checkpoints/AirRaid
-                 }
-  generator_prefill_steps: 0
-  n_env_steps: 10_000_000
+  atari_net_dir: {
+    Atari-Air_Raid: atari_net/checkpoints/Air_Raid,
+    Atari-Assault: atari_net/checkpoints/Assault,
+    Atari-Beam_Rider: atari_net/checkpoints/Beam_Rider,
+    Atari-Carnival: atari_net/checkpoints/Carnival,
+    Atari-Journey_Escape: atari_net/checkpoints/Journey_Escape,
+    Atari-Phoenix: atari_net/checkpoints/Phoenix,
+    Atari-Pong: atari_net/checkpoints/Pong,
+    Atari-Private_Eye: atari_net/checkpoints/Private_Eye,
+    Atari-Riverraid: atari_net/checkpoints/Riverraid
+  }
+  generator_prefill_steps: 500_000
+
+  n_env_steps: 200_000_000
 
 wm_training:
-  mlflow_run_id: 75dbc64597ae4dbfb14630247aa2cd50
-  multi_env_encoder: True
+  mlflow_run_id: 6e7868dde82a42c48d97ef4a0a29234e
+  multi_env_encoder: False
   n_steps: 100_000_000
-  n_env_steps: 10_000_000_000
+  n_env_steps: 200_000_000
 
 finetune:
   n_steps: 20_000
-  n_steps_wm: 5_000
-  model_checkpoint:
+  n_steps_wm: 20_000
+  model_checkpoint: mlruns/0/1420c2c9944e43aa9463e045ed4ac11f/artifacts/checkpoints/latest.pt
+  freeze_rssm: True

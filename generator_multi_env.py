@@ -150,6 +150,7 @@ def main(env_id=['MiniGrid-MazeS11N-v0'],
         # Unroll one episode
         # env_index = np.random.randint(0, len(env))
         env_index = np.argmin(steps_per_env)
+        info(f"Environment: {env_id[env_index]}")
         # print(f"Steps per env: {list(zip(env_id, steps_per_env))}")
         epsteps = 0
         timer = time.time()
@@ -343,71 +344,73 @@ class AtariNetPolicy:
 
     action_space = {
         "Atari-Adventure": None,
-        "Atari-air_raid": [0, 1, 3, 4, 11, 12],
+        "Atari-Air_Raid": [0, 1, 3, 4, 11, 12],
         "Atari-Alien": None,
         "Atari-Amidar": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
         "Atari-Assault": [0, 1, 2, 3, 4, 11, 12],
         "Atari-Asterix": [0, 2, 3, 4, 5, 6, 7, 8, 9],
         "Atari-Asteroids": [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15],
         "Atari-Atlantis": [0, 1, 11, 12],
-        "Atari-BankHeist": None,
-        "Atari-BattleZone": None,
-        "Atari-BeamRider": [0, 1, 2, 3, 4, 6, 7, 11, 12],
+        "Atari-Bank_Heist": None,
+        "Atari-Battle_Zone": None,
+        "Atari-Beam_Rider": [0, 1, 2, 3, 4, 6, 7, 11, 12],
         "Atari-Berzerk": None,
         "Atari-Bowling": [0, 1, 2, 5, 10, 13],
         "Atari-Boxing": None,
         "Atari-Breakout": [0, 1, 3, 4],
         "Atari-Carnival": [0, 1, 3, 4, 11, 12],
         "Atari-Centipede": None,
-        "Atari-ChopperCommand": None,
-        "Atari-CrazyClimber": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Chopper_Command": None,
+        "Atari-Crazy_Climber": [0, 2, 3, 4, 5, 6, 7, 8, 9],
         "Atari-Defender": None,
-        "Atari-DemonAttack": [0, 2, 3, 4, 5, 6, 7, 8, 9],
-        "Atari-DoubleDunk": [0, 2, 3, 4, 5, 6, 7, 8, 9],
-        "Atari-ElevatorAction": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Demon_Attack": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Double_Dunk": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Elevator_Action": [0, 2, 3, 4, 5, 6, 7, 8, 9],
         "Atari-Enduro": [0, 2, 3, 4, 5, 6, 7, 8, 9],
-        "Atari-FishingDerby": None,
+        "Atari-Fishing_Derby": None,
         "Atari-Freeway": None,
         "Atari-Frostbite": None,
         "Atari-Gopher": None,
         "Atari-Gravitar": None,
         "Atari-Hero": None,
-        "Atari-IceHockey": None,
+        "Atari-Ice_Hockey": None,
         "Atari-Jamesbond": None,
-        "Atari-JorneyEscape": None,
+        "Atari-Journey_Escape": [0, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17],
         "Atari-Kangaroo": None,
         "Atari-Krull": None,
-        "Atari-KungFuMaster": [0, 2, 3, 4, 5, 8, 9, 11, 12, 13, 14, 15, 16, 17],
-        "Atari-MontezumaRevenge": None,
-        "Atari-MsPacman": [0, 2, 3, 4, 5, 6, 7, 8, 9],
-        "Atari-NameThisGame": [0, 1, 3, 4, 11, 12],
+        "Atari-Kung_Fu_Master": [0, 2, 3, 4, 5, 8, 9, 11, 12, 13, 14, 15, 16, 17],
+        "Atari-Montezuma_Revenge": None,
+        "Atari-Ms_Pacman": [0, 2, 3, 4, 5, 6, 7, 8, 9],
+        "Atari-Name_This_Game": [0, 1, 3, 4, 11, 12],
         "Atari-Phoenix": [0, 1, 3, 4, 5, 11, 12, 13],
         "Atari-Pitfall": None,
         "Atari-Pong": [0, 1, 3, 4, 11, 12],
         "Atari-Pooyan": [0, 1, 2, 5, 10, 13],
-        "Atari-PrivateEye": None,
+        "Atari-Private_Eye": None,
         "Atari-Qbert": [0, 1, 2, 3, 4, 5],
         "Atari-Riverraid": None,
-        "Atari-RoadRunner": None,
-        "Atari-RobotTank": None,
+        "Atari-Road_Runner": None,
+        "Atari-Robotank": None,
         "Atari-Seaquest": None,
-        "Atari-Skiings": [0, 3, 4],
+        "Atari-Skiing": [0, 3, 4],
         "Atari-Solaris": None,
-        "Atari-SpaceInvaders": [0, 1, 3, 4, 11, 12],
-        "Atari-StarGunner": [0, 1, 2, 3, 4, 5],
+        "Atari-Space_Invaders": [0, 1, 3, 4, 11, 12],
+        "Atari-Star_Gunner": [0, 1, 2, 3, 4, 5],
         "Atari-Tennis": None,
-        "Atari-TimePilot": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
+        "Atari-Time_Pilot": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
         "Atari-Tutankham": [0, 2, 3, 4, 5, 10, 11, 12],
-        "Atari-UpNDown": [0, 1, 2, 5, 10, 13],
+        "Atari-Up_N_Down": [0, 1, 2, 5, 10, 13],
         "Atari-Venture": None,
-        "Atari-VideoPinball": [0, 1, 2, 3, 4, 5, 10, 11, 12],
-        "Atari-WizardOfWor": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
+        "Atari-Video_Pinball": [0, 1, 2, 3, 4, 5, 10, 11, 12],
+        "Atari-Wizard_Of_Wor": [0, 1, 2, 3, 4, 5, 10, 11, 12, 13],
         "Atari-Zaxxon": None
     }
 
     def __init__(self, env_id):
         self.env_id = env_id
-        self.model = AtariNet(len(AtariNetPolicy.action_space[env_id]))
+        action_space = AtariNetPolicy.action_space[env_id]
+        num_actions = len(action_space) if action_space is not None else 18
+        self.model = AtariNet(num_actions)
         self.image_buffer = torch.zeros(4, 84, 84, dtype=torch.uint8)
 
     def __call__(self, obs) -> Tuple[int, dict]:
@@ -433,7 +436,11 @@ class AtariNetPolicy:
 
     def load_checkpoint(self, path):
         ckpt = _load_checkpoint(path)
-        self.model.load_state_dict(ckpt["estimator_state"])
+        try:
+            self.model.load_state_dict(ckpt["estimator_state"])
+        except RuntimeError as err:
+            print(path)
+            print(err)
 
     @staticmethod
     def rgb2gray(rgb):

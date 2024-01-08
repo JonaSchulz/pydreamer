@@ -12,7 +12,7 @@ from pydreamer.preprocessing import Preprocessor
 from pydreamer.tools import *
 from generator import create_policy, RandomPolicy, NetworkPolicy
 
-model_path = "mlruns/0/1420c2c9944e43aa9463e045ed4ac11f/artifacts/checkpoints/latest.pt"
+model_path = "mlruns/0/bd590d3204ab45b4ab725293d7df6789/artifacts/checkpoints/latest.pt"
 
 
 def main(model_path=None,

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
 
-file_path = 'mlruns/0/b0437a39aa3843889c2c520365c3498c/artifacts/episodes/0/ep000000_000000-0-r21-1731.npz'
+file_path = 'mlruns/0/bd590d3204ab45b4ab725293d7df6789/artifacts/d2_wm_dream/0009001.npz'
 # file_path = os.path.join('test/episodes', os.listdir('test/episodes')[0])
 
 dream_seq = np.load(file_path)
@@ -17,6 +17,7 @@ y = np.linspace(0, 2 * np.pi, 100).reshape(-1, 1)
 # ims is a list of lists, each row is a list of artists to draw in the
 # current frame; here we are just animating one artist, the image, in
 # each frame
+key = 'image'
 if 'image' not in dream_seq.keys():
     key = 'image_t'
 

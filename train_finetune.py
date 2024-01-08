@@ -107,6 +107,10 @@ def run(conf):
         model: Dreamer = WorldModelProbe(conf)  # type: ignore
     model.to(device)
 
+    # keep RSSM frozen, only fine-tune encoder/decoder
+    if conf.freeze_rssm:
+        model.wm.core.requires_grad_(False)
+
     print(model)
     # print(repr(model))
     mlflow_log_text(repr(model), 'architecture.txt')
@@ -193,6 +197,10 @@ def run(conf):
 
                         if conf.keep_state:
                             states[wid] = new_state
+
+                        # keep RSSM frozen, only fine-tune encoder/decoder
+                        if conf.freeze_rssm:
+                            model.wm.core.requires_grad_(False)
 
                 # Backward
                 if steps >= conf.n_steps_wm:
