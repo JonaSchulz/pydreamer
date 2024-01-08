@@ -47,7 +47,7 @@ defaults:
   adam_eps: 1.0e-5
   keep_state: True
   batch_length: 48
-  batch_size: 8
+  batch_size: 32
   device: "cuda:0"
   grad_clip: 200
   grad_clip_ac: 200
@@ -343,4 +343,4 @@ finetune:
   n_steps: 20_000
   n_steps_wm: 20_000
   model_checkpoint: mlruns/0/1420c2c9944e43aa9463e045ed4ac11f/artifacts/checkpoints/latest.pt
-  freeze_rssm: False
+  freeze_rssm: True

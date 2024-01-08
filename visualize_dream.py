@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
 
-file_path = 'mlruns/0/6e7868dde82a42c48d97ef4a0a29234e/artifacts/d2_wm_open_eval/0164000_60_r-3.npz'
+file_path = 'mlruns/0/bd590d3204ab45b4ab725293d7df6789/artifacts/d2_wm_dream/0009001.npz'
 # file_path = os.path.join('test/episodes', os.listdir('test/episodes')[0])
 
 dream_seq = np.load(file_path)
