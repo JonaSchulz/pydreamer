@@ -1,4 +1,7 @@
 # Adapting to the Unfamiliar
+This repo contains the code to our paper ["Adapting to the Unfamiliar: Leveraging Latent Space in Reinforcement
+Learning for Cross-Environment Generalization"](Paper.pdf)
+
 This project is built on top of the pydreamer repository, a PyTorch implementation of DreamerV2, found at: https://github.com/jurgisp/pydreamer.
 A variety of new scripts have been added to perform the experiments of our project.
 
